@@ -1,11 +1,21 @@
-export default class Node {
+import { EventEmitter } from 'events';
+import { Pool } from "../net";
 
-    constructor() {
+export class Node extends EventEmitter {
 
+    pool!: Pool;
+
+    protected constructor() {
+        super();
     }
-    
-    public start() {
-        console.log('Starting node...')
-    }
 
+    /**
+     * Emit and log an error.
+     * @private
+     * @param {Error} err
+     */
+    protected error(err: Error) {
+        console.error(err);
+        this.emit('error', err);
+    }
 }

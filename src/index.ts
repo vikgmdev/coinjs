@@ -1,5 +1,13 @@
-import { Node } from './node';
+import { FullNode } from './node';
 
-const node = new Node();
+const node = new FullNode();
 
-node.start();
+(async () => {
+    await node.ensure();
+    await node.open();
+    await node.connect();
+    node.startSync();
+})().catch(err => {
+    console.error(err.stack);
+    process.exit(1);
+});
