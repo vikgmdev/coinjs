@@ -1,8 +1,7 @@
 import { EventEmitter } from 'events';
-import { Pool } from "../net";
+import { Pool } from '../net';
 
 export class Node extends EventEmitter {
-
     pool!: Pool;
 
     protected constructor() {
