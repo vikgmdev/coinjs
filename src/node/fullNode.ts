@@ -1,8 +1,7 @@
 import { Node } from './node';
-import { Pool } from "../net";
+import { Pool } from '../net';
 
 export class FullNode extends Node {
-
     pool: Pool;
 
     public constructor() {
@@ -20,5 +19,14 @@ export class FullNode extends Node {
     private init() {
         // Bind to errors
         this.pool.on('error', (err: Error) => this.error(err));
+    }
+
+    /**
+     * Connect to the network.
+     * @returns {Promise}
+     */
+
+    connect() {
+        return this.pool.connect();
     }
 }
