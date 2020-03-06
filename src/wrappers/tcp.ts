@@ -82,7 +82,7 @@ export class Server extends EventEmitter {
         });
     }
 
-    listen(...args) {
+    listen(...args: any) {
         return new Promise((resolve, reject) => {
             this._reject = reject;
 
