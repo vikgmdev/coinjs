@@ -1,9 +1,6 @@
 import { EventEmitter } from 'events';
-import { Pool } from '../net';
 
 export class Node extends EventEmitter {
-    pool!: Pool;
-
     protected constructor() {
         super();
     }
@@ -13,8 +10,7 @@ export class Node extends EventEmitter {
      * @private
      * @param {Error} err
      */
-    protected error(err: Error) {
-        console.error(err);
+    protected error(err: Error): void {
         this.emit('error', err);
     }
 }
