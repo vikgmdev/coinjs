@@ -1,68 +1,109 @@
 import { EventEmitter } from 'events';
-import { Server, Socket, tcp } from '../wrappers';
+import { Peer } from './peer';
+import PeerList from './helpers/peerList';
 
 export class Pool extends EventEmitter {
-    server: Server;
-    connected: boolean;
+    id: number;
 
-    options = {
-        host: 'localhost',
-        maxInbound: 20,
-        port: 65378,
-    };
+    peers: PeerList;
 
     constructor() {
         super();
 
-        this.connected = false;
+        this.id = 0;
 
-        this.server = tcp.createServer();
-
-        this.init();
+        this.peers = new PeerList();
     }
 
-    private init() {
-        this.server.on('error', (err: Error) => {
-            this.emit('error', err);
+    /**
+     * Bind to peer events.
+     */
+    protected bindPeer(peer: Peer): void {
+        peer.id = this.uid();
+
+        peer.on('error', err => {
+            console.log('ON - PEER - ERROR', err);
         });
 
-        this.server.on('connection', (socket: Socket) => {
-            this.emit('connection', socket);
+        peer.once('connect', async () => {
+            try {
+                await this.handleConnect(peer);
+            } catch (e) {
+                this.emit('error', e);
+            }
         });
 
-        this.server.on('listening', () => {
-            const data = this.server.address();
-            console.info(`Pool server listening on ${data.address} (port=${data.port}).`);
-            this.emit('listening', data);
+        peer.once('open', async () => {
+            try {
+                await this.handleOpen(peer);
+            } catch (e) {
+                this.emit('error', e);
+            }
+        });
+
+        peer.once('close', async connected => {
+            try {
+                await this.handleClose(peer, connected);
+            } catch (e) {
+                this.emit('error', e);
+            }
         });
     }
 
     /**
-     * Connect to the network.
+     * Allocate new peer id.
      */
-    async connect(): Promise<any> {
-        return await this._connect();
+    uid(): number {
+        const MAX = Number.MAX_SAFE_INTEGER;
+
+        if (this.id >= MAX - this.peers.size() - 1) this.id = 0;
+
+        // Once we overflow, there's a chance
+        // of collisions. Unlikely to happen
+        // unless we have tried to connect 9
+        // quadrillion times, but still
+        // account for it.
+        do {
+            this.id += 1;
+        } while (this.peers.find(this.id));
+
+        return this.id;
     }
 
     /**
-     * Connect to the network (no lock).
+     * Handle peer connect event.
      */
-    async _connect(): Promise<any> {
-        if (this.connected) return;
 
-        await this.listen();
+    private async handleConnect(peer: Peer): Promise<void> {
+        console.info('Connected to %s.', peer.hostname());
 
-        this.connected = true;
+        this.emit('peer connect', peer);
     }
 
     /**
-     * Start listening on a server socket.
+     * Handle peer open event.
      */
-    private async listen(): Promise<any> {
-        if (this.connected) throw new Error('Already listening.');
+    private async handleOpen(peer: Peer): Promise<void> {
+        this.emit('peer open', peer);
+    }
 
-        this.server.maxConnections = this.options.maxInbound;
+    /**
+     * Handle peer close event.
+     */
+    private async handleClose(peer: Peer, connected: boolean): Promise<void> {
+        this.removePeer(peer);
 
-        await this.server.listen(this.options.port, this.options.host);
+        this.emit('peer close', peer, connected);
+    }
+
+    /**
+     * Remove a peer from any list. Drop all load requests.
+     */
+    private removePeer(peer: Peer): void {
+        try {
+            this.peers.remove(peer);
+        } catch (err) {
+            // console.log('removepeer:', err)
+        }
     }
 }
