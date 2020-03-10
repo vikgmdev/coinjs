@@ -1,14 +1,16 @@
 import { Node } from './node';
-import { Pool } from '../net';
+import { ClientPool, ServerPool } from '../net';
 
 export class FullNode extends Node {
-    pool: Pool;
+    serverPool: ServerPool;
+    clientPool: ClientPool;
 
-    public constructor() {
+    public constructor(port: number) {
         super();
 
         // Instantiate p2p pool.
-        this.pool = new Pool();
+        this.serverPool = new ServerPool(port);
+        this.clientPool = new ClientPool(port);
 
         this.init();
     }
@@ -16,17 +18,17 @@ export class FullNode extends Node {
     /**
      * Initialize the node.
      */
-    private init() {
+    private init(): void {
         // Bind to errors
-        this.pool.on('error', (err: Error) => this.error(err));
+        this.serverPool.on('error', (err: Error) => this.error(err));
+        this.clientPool.on('error', (err: Error) => this.error(err));
     }
 
     /**
      * Connect to the network.
-     * @returns {Promise}
      */
-
-    connect() {
-        return this.pool.connect();
+    public async connect(): Promise<void> {
+        await this.serverPool.listen();
+        await this.clientPool.connect();
     }
 }
