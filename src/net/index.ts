@@ -1,1 +1,2 @@
-export { Pool } from './pool';
+export { ServerPool } from './server-pool';
+export { ClientPool } from './client-pool';
