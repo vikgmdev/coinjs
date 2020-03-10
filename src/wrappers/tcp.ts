@@ -1,15 +1,13 @@
 import { EventEmitter } from 'events';
-import net from 'net';
+import net, { AddressInfo } from 'net';
 
 export class Server extends EventEmitter {
-
     server: net.Server;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     _reject: any;
 
     /**
      * Create a TCP server.
-     * @constructor
-     * @param {Function?} handler
      */
     constructor(handler?: () => void) {
         super();
@@ -43,14 +41,14 @@ export class Server extends EventEmitter {
     }
 
     address(): net.AddressInfo {
-        return (this.server.address()) as net.AddressInfo;
+        return this.server.address() as net.AddressInfo;
     }
 
-    close() {
+    close(): Promise<void> {
         return new Promise((resolve, reject) => {
             this._reject = reject;
 
-            const cb = (err?: Error) => {
+            const cb = (err?: Error): void => {
                 this._reject = null;
 
                 if (err) {
@@ -70,7 +68,7 @@ export class Server extends EventEmitter {
         });
     }
 
-    getConnections() {
+    getConnections(): Promise<number> {
         return new Promise((resolve, reject) => {
             this.server.getConnections((err: Error | null, count) => {
                 if (err) {
@@ -82,7 +80,8 @@ export class Server extends EventEmitter {
         });
     }
 
-    listen(...args: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    listen(...args: any[]): Promise<AddressInfo> {
         return new Promise((resolve, reject) => {
             this._reject = reject;
 
@@ -100,42 +99,44 @@ export class Server extends EventEmitter {
         });
     }
 
-    get listening() {
+    get listening(): boolean {
         return this.server.listening;
     }
 
-    set listening(value) {}
-
-    get maxConnections() {
+    get maxConnections(): number {
         return this.server.maxConnections;
     }
 
-    set maxConnections(value) {
+    set maxConnections(value: number) {
         this.server.maxConnections = value;
     }
 
-    ref() {
+    ref(): Server {
         this.server.ref();
         return this;
     }
 
-    unref() {
+    unref(): Server {
         this.server.unref();
         return this;
     }
 }
 
-export class Socket extends net.Socket {};
+export class Socket extends net.Socket {}
 
 /**
  * Create a TCP server.
- * @param {Function?} handler
- * @returns {Object}
  */
-function createServer(handler?: () => void) {
+function createServer(handler?: () => void): Server {
     return new Server(handler);
-};
+}
+
+/**
+ * Create a TCP socket and connect.
+ */
+const createSocket = (port: number, host: string): Socket => net.connect(port, host);
 
 export const tcp = {
-    createServer
-}
+    createServer,
+    createSocket,
+};
